@@ -1,0 +1,4 @@
+nginx_http_port: 80
+nginx_https_port: 443
+service_port: 8080
+domain_name: example.szp

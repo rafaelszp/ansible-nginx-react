@@ -1,0 +1,10 @@
+---
+# vars file for nginx
+self_signed_certs:
+  - key:  /etc/ssl/self-signed/server.key
+    cert: /etc/ssl/self-signed/server.crt
+
+
+
+
+

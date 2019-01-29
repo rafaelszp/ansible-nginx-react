@@ -1,0 +1,21 @@
+[balancer]
+webserver ansible_host=192.168.10.10
+
+
+[app]
+node-app ansible_host=192.168.10.11
+
+
+[AppStack:children]
+balancer
+app
+
+[app:vars]
+ansible_ssh_private_key_file=.vagrant/machines/app/virtualbox/private_key
+
+[balancer:vars]
+ansible_ssh_private_key_file=.vagrant/machines/balancer/virtualbox/private_key
+
+[all:vars]
+ansible_user=vagrant
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

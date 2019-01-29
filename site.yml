@@ -1,0 +1,19 @@
+---
+#Main playbook file
+- name: Install Nginx as Proxy Balancer with Self-signed SSL
+  hosts: balancer
+  become: yes
+  become_method: sudo
+
+  roles:
+    - base
+    - nginx
+
+- name: Install App backend
+  hosts: app
+  become: yes
+  become_method: sudo
+
+  roles:
+    - base
+    - app

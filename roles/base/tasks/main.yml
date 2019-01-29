@@ -1,0 +1,9 @@
+---
+# tasks file for base
+- name: Install epel repo
+  copy: src=epel.repo dest=/etc/yum.repos.d/epel.repo
+
+- name: Update openssl
+  yum:
+    name: openssl
+    state: latest
