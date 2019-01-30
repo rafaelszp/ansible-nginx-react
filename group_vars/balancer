@@ -1,0 +1,76 @@
+nginx_http_port: 80 default_server backlog=32768
+nginx_https_port: 443 ssl
+subdomain_name: www
+
+
+self_signed_certs:
+  - key:  /etc/ssl/self-signed/server.key
+    cert: /etc/ssl/self-signed/server.crt
+    dhparam_length: 128
+
+nginx_user: nginx
+nginx_worker_processes: >-
+  "{{ ansible_processor_vcpus | default(ansible_processor_count) }}"
+
+
+nginx_worker_rlimit_nofile: "200000"
+nginx_worker_connections: "1024"
+
+nginx_keepalive_requests: "100000"
+nginx_keepalive_timeout: "300s"
+nginx_client_body_timeout: "300"
+nginx_send_timeout: "300"
+nginx_client_max_body_size: "70M"
+
+nginx_gzip_min_length: "10240"
+nginx_gzip_comp_level: "3"
+
+nginx_gzip_types: text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript
+
+nginx_sendfile: "on"
+nginx_tcp_nopush: "on"
+nginx_tcp_nodelay: "on"
+nginx_open_file_cache: "max=5000 inactive=5m"
+nginx_open_file_cache_valid: "10m"
+nginx_open_file_cache_min_uses: "2"
+nginx_open_file_cache_errors: "on"
+
+nginx_document_root: /usr/share/nginx/html
+
+
+nginx_vhosts:
+    - listen: "{{nginx_http_port}}"
+      server_name: "{{subdomain_name}}.{{ domain_name }}"
+      root: "{{nginx_document_root}}"
+      #Optional config
+      client_max_body_size: 100000G
+      limit_rate: 150K
+
+    - listen: "{{nginx_https_port}}"
+      server_name: "{{subdomain_name}}.{{ domain_name }}"
+      root: "{{nginx_document_root}}"
+      client_max_body_size: 100000G
+      limit_rate: 300K
+      access_log: "/var/log/nginx/access.{{subdomain_name}}.{{ domain_name }}.log main buffer=16k flush=2m"
+      error_log: "/var/log/nginx/error.{{subdomain_name}}.{{ domain_name }}.log warn"
+      ssl_config: |
+        ssl on;
+        ssl_certificate {{ self_signed_certs[0]['cert'] }};
+        ssl_certificate_key {{ self_signed_certs[0]['key'] }};
+      headers: |
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+        add_header X-Frame-Options DENY;
+
+nginx_upstream:
+  - name: app_backend
+    strategy: roundrobin
+    keepalive: 20
+
+nginx_location: 
+  - context_path: "{{app_context_path}}"
+    upstream_name: app_backend
+    extra_config: |
+      proxy_set_header X-Forwarded-Proto $scheme;
+
+                
+

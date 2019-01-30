@@ -1,4 +1,6 @@
-nginx_http_port: 80
-nginx_https_port: 443
-service_port: 8080
+app_port: 8080
+app_context_path: react-app
 domain_name: example.szp
+app_hosts:
+  - host: "192.168.10.11"
+    params: "weight=1 max_fails=2"

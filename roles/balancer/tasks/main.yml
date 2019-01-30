@@ -1,0 +1,83 @@
+---
+# tasks file for nginx
+
+- name: Create certificates directory
+  file: 
+    path: /etc/ssl/self-signed
+    state: directory
+
+- debug:
+    msg: |
+      System {{ inventory_hostname }} has uuid {{ ansible_product_uuid }} and nodename as {{ansible_nodename}}
+      The server_name for nginx.conf will be {{subdomain_name}}.{{ domain_name }}
+
+
+- command: "test -f {{item.key}}"
+  register: key_is_present
+  ignore_errors: true
+  with_items: "{{self_signed_certs}}"
+
+- name: Generate new self-signed certificate if doesn't exists
+  command: >
+      openssl req -x509 -nodes -subj '/CN={{subdomain_name}}.{{ domain_name }}' -days 36500
+      -newkey rsa:4096 -sha256 -keyout {{ item.key }} -out {{ item.cert }}
+      creates={{ item.cert }}
+  with_items: "{{ self_signed_certs }}"
+  when: key_is_present is failed
+
+- name: Check if dhparam is already created
+  command: "test -f /etc/ssl/self-signed/dhparam.pem"
+  register: dhparam_present
+  ignore_errors: true
+
+- name: Generate strong key
+  command: >
+    openssl dhparam -out /etc/ssl/self-signed/dhparam.pem {{item.dhparam_length}}
+  with_items: "{{self_signed_certs}}"
+  when: dhparam_present is failed
+
+
+- name: Enable nginx repo
+  template:
+    src: nginx.repo.j2
+    dest: /etc/yum.repos.d/nginx.repo
+    force: no
+
+- name: Install nginx yum package
+  yum:
+    name: nginx
+    state: present
+
+- name: Setup nginx.conf
+  template: 
+    src: nginx.conf.j2 
+    dest: /etc/nginx/nginx.conf
+    lstrip_blocks: yes
+
+- name: Checking configuration
+  command: /sbin/nginx -t
+  register: nginx_status
+
+- name: Setup default maintenance and 404 pages
+  copy: src={{item.src}} dest={{item.dest}}
+  with_items:
+    - src: maintenance.html
+      dest: "{{nginx_document_root}}/maintenance.html"
+    - src: 404.html
+      dest: "{{nginx_document_root}}/404.html"
+
+- name: Setting nginx_document_root to nginx user
+  file:
+    path: "{{nginx_document_root}}"
+    owner: "{{nginx_user}}"
+    group: "{{nginx_user}}"
+    mode: 0755
+    recurse: yes
+  notify: restart nginx 
+
+
+
+
+
+
+
